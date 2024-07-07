@@ -395,7 +395,9 @@ open class LineChartRenderer: LineRadarRenderer
                 return
             }
 
-            var firstPoint = true
+			context.beginPath()
+			var firstPoint = true
+			var closePath = false
 
             let path = CGMutablePath()
             for x in stride(from: _xBounds.min, through: _xBounds.range + _xBounds.min, by: 1)
@@ -403,50 +405,64 @@ open class LineChartRenderer: LineRadarRenderer
                 guard let e1 = dataSet.entryForIndex(x == 0 ? 0 : (x - 1)) else { continue }
                 guard let e2 = dataSet.entryForIndex(x) else { continue }
                 
-                let startPoint =
-                    CGPoint(
-                        x: CGFloat(e1.x),
-                        y: CGFloat(e1.y * phaseY))
-                    .applying(valueToPixelMatrix)
-                
-                if firstPoint
-                {
-                    path.move(to: startPoint)
-                    firstPoint = false
-                }
-                else
-                {
-                    path.addLine(to: startPoint)
-                }
-                
-                if isDrawSteppedEnabled
-                {
-                    let steppedPoint =
-                        CGPoint(
-                            x: CGFloat(e2.x),
-                            y: CGFloat(e1.y * phaseY))
-                        .applying(valueToPixelMatrix)
-                    path.addLine(to: steppedPoint)
-                }
+				let startPoint =
+					CGPoint(
+						x: CGFloat(e1.x),
+						y: CGFloat(e1.y * phaseY))
+					.applying(valueToPixelMatrix)
 
-                let endPoint =
-                    CGPoint(
-                        x: CGFloat(e2.x),
-                        y: CGFloat(e2.y * phaseY))
-                    .applying(valueToPixelMatrix)
-                path.addLine(to: endPoint)
+				if firstPoint
+				{
+					if e1.visible {
+						context.move(to: startPoint)
+						firstPoint = false
+					} else if e2.visible {
+						context.move(to: CGPoint(
+							x: CGFloat(e2.x),
+							y: CGFloat(e2.y * phaseY)
+							).applying(valueToPixelMatrix))
+					}
+				}
+				else if e1.visible
+				{
+					if closePath {
+						continue
+					} else {
+						context.addLine(to: startPoint)
+					}
+				}
+
+				if isDrawSteppedEnabled
+				{
+					let steppedPoint =
+						CGPoint(
+							x: CGFloat(e2.x),
+							y: CGFloat(e1.y * phaseY))
+						.applying(valueToPixelMatrix)
+					context.addLine(to: steppedPoint)
+				}
+				if e2.visible {
+					if closePath {
+						context.move(to: CGPoint(
+							x: CGFloat(e2.x),
+							y: CGFloat(e2.y * phaseY)
+							).applying(valueToPixelMatrix))
+						closePath = false
+					} else {
+						context.addLine(to: CGPoint(
+							x: CGFloat(e2.x),
+							y: CGFloat(e2.y * phaseY)
+							).applying(valueToPixelMatrix))
+					}
+				} else {
+					closePath = true
+				}
             }
             
             if !firstPoint
             {
-                if dataSet.isDrawLineWithGradientEnabled {
-                    drawGradientLine(context: context, dataSet: dataSet, spline: path, matrix: valueToPixelMatrix)
-                } else {
-                    context.beginPath()
-                    context.addPath(path)
-                    context.setStrokeColor(dataSet.color(atIndex: 0).cgColor)
-                    context.strokePath()
-                }
+				context.setStrokeColor(dataSet.color(atIndex: 0).cgColor)
+				context.strokePath()
             }
         }
     }

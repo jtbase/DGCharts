@@ -15,7 +15,10 @@ open class ChartDataEntry: ChartDataEntryBase, NSCopying
 {
     /// the x value
     @objc open var x = 0.0
-    
+
+	/// wether show the point. default is true
+	@objc open var visible: Bool = true
+
     public required init()
     {
         super.init()
